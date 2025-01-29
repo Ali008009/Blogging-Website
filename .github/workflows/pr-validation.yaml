@@ -1,78 +1,52 @@
-name: Deploy to GitHub Pages
+name: Pull Request Validation
 
 on:
-  push:
+  pull_request:
     branches:
       - develop
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build static website
-        run: npx parcel build src/home.js --dist-dir dist --public-url ./
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: github-pages
-          path: dist
-
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build static website
-        run: npx parcel build src/home.js --dist-dir dist --public-url ./
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: github-pages
-          path: dist
-
-deploy:
-  needs: build
-  runs-on: ubuntu-latest
-
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-     
-    - name: Deploy to GitHub Pages
-      uses: actions/deploy-pages@v4
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
       with:
-        artifact_name: github-pages
+        node-version: '18'
 
+    - name: Install dependencies
+      run: |
+        npm install htmlhint stylelint parcel-bundler --save-dev
+
+    - name: Lint HTML files
+      run: |
+        npx htmlhint --config .htmlhintrc.json src/**/*.html
+
+    - name: Lint CSS files
+      run: |
+        npx stylelint "**/*.css"
+
+  build:
+    runs-on: ubuntu-latest
+
+    needs: lint
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        with:
-          artifact_name: github-pages
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: |
+        npm install parcel-bundler --save-dev
+
+    - name: Build the website
+      run: npx parcel build src/index.html
